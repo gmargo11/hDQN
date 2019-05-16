@@ -7,6 +7,7 @@ class StochastichMDPEnv:
         self.visited_six = False
         self.current_state = 1
         self.action_space = spaces.Discrete(2)
+        self.observation_space = spaces.Discrete(6)
 
     def reset(self):
         self.visited_six = False

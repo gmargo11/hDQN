@@ -47,8 +47,11 @@ class hierarchicalQLearningAgent():
 
 
     def learn(self):
+        stats = plotting.EpisodeStats( 
+                episode_lengths = np.zeros(self.num_episodes), 
+                episode_rewards = np.zeros(self.num_episodes)) 
 
-        stats = plotting.Stats(num_episodes=self.num_episodes, num_states=self.env.observation_space.n)
+        #env = WindyGridworldEnv()
 
 
         A = self.env.action_space
@@ -70,10 +73,11 @@ class hierarchicalQLearningAgent():
                     print('Episode ', i)
                     print(epsilon)
                     print(epsilon_meta)
+                    print(Q1)
+                    print(Q2)
             s = self.env.reset()
             done = False
             goal = self.epsGreedy(s, self.meta_goals, epsilon_meta, Q2)
-            #stats.target_count[goal, i] += 1
             epsilon[goal] = max(epsilon[goal] - self.epsilon_anneal, 0.1)
             t = 0
             while not done:
@@ -86,7 +90,6 @@ class hierarchicalQLearningAgent():
                     r = self.intrinsic_reward(s, action, s_next, goal)
                     stats.episode_rewards[i] += f
                     stats.episode_lengths[i] = t
-                    stats.visitation_count[s_next, i] += 1
 
                     D1 = [((s, goal), action, r, (s_next, goal), done)]
                     Q1 = self.QValueUpdate(Q1, D1)
@@ -97,7 +100,6 @@ class hierarchicalQLearningAgent():
                 Q2 = self.QValueUpdate(Q2, D2)
                 if not done:
                     goal = self.epsGreedy(s, self.meta_goals, epsilon_meta, Q2)
-                    stats.target_count[goal, i] += 1
                     epsilon[goal] = max(epsilon[goal] - self.epsilon_anneal, 0.1)
 
             epsilon_meta = max(epsilon_meta - self.meta_epsilon_anneal, 0.1)
@@ -109,6 +111,6 @@ class hierarchicalQLearningAgent():
 
 
 if __name__ == "__main__":
-    agent = hierarchicalQLearningAgent(env=hMDP())
+    agent = hierarchicalQLearningAgent()
     stats = agent.learn()
-    plotting.plot_rewards([stats], smoothing_window=1000)
+    plotting.plot_episode_stats(stats, smoothing_window=1000)

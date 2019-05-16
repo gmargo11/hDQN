@@ -1,98 +1,73 @@
-import matplotlib
 import numpy as np
 import pandas as pd
-from collections import namedtuple
 from matplotlib import pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-
-EpisodeStats = namedtuple("Stats",["episode_lengths", "episode_rewards"])
-
-def plot_cost_to_go_mountain_car(env, estimator, num_tiles=20):
-    x = np.linspace(env.observation_space.low[0], env.observation_space.high[0], num=num_tiles)
-    y = np.linspace(env.observation_space.low[1], env.observation_space.high[1], num=num_tiles)
-    X, Y = np.meshgrid(x, y)
-    Z = np.apply_along_axis(lambda _: -np.max(estimator.predict(_)), 2, np.dstack([X, Y]))
-
-    fig = plt.figure(figsize=(10, 5))
-    ax = fig.add_subplot(111, projection='3d')
-    surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                           cmap=matplotlib.cm.coolwarm, vmin=-1.0, vmax=1.0)
-    ax.set_xlabel('Position')
-    ax.set_ylabel('Velocity')
-    ax.set_zlabel('Value')
-    ax.set_title("Mountain \"Cost To Go\" Function")
-    fig.colorbar(surf)
-    plt.show()
 
 
-def plot_value_function(V, title="Value Function"):
-    """
-    Plots the value function as a surface plot.
-    """
-    min_x = min(k[0] for k in V.keys())
-    max_x = max(k[0] for k in V.keys())
-    min_y = min(k[1] for k in V.keys())
-    max_y = max(k[1] for k in V.keys())
+class Stats():
+    def __init__(self, num_episodes=20000, num_states = 6, continuous=False):
+        self.episode_rewards = np.zeros(num_episodes)
+        self.episode_lengths = np.zeros(num_episodes)
+        if not continuous:
+            self.visitation_count = np.zeros((num_states, num_episodes))
+            self.target_count = np.zeros((num_states, num_episodes))
 
-    x_range = np.arange(min_x, max_x + 1)
-    y_range = np.arange(min_y, max_y + 1)
-    X, Y = np.meshgrid(x_range, y_range)
+def plot_rewards(episodes_ydata, smoothing_window = 1000, c='b'):
+    smoothing_window = 1000
 
-    # Find value for all (x, y) coordinates
-    Z_noace = np.apply_along_axis(lambda _: V[(_[0], _[1], False)], 2, np.dstack([X, Y]))
-    Z_ace = np.apply_along_axis(lambda _: V[(_[0], _[1], True)], 2, np.dstack([X, Y]))
+    overall_stats_q_learning = []
+    for trialdata in episodes_ydata:
+        overall_stats_q_learning.append(pd.Series(trialdata.episode_rewards).rolling(smoothing_window, min_periods=smoothing_window).mean().data)
+    m_stats_q_learning = np.mean(overall_stats_q_learning, axis=0)
+    std_stats_q_learning = np.std(overall_stats_q_learning, axis=0)
 
-    def plot_surface(X, Y, Z, title):
-        fig = plt.figure(figsize=(20, 10))
-        ax = fig.add_subplot(111, projection='3d')
-        surf = ax.plot_surface(X, Y, Z, rstride=1, cstride=1,
-                               cmap=matplotlib.cm.coolwarm, vmin=-1.0, vmax=1.0)
-        ax.set_xlabel('Player Sum')
-        ax.set_ylabel('Dealer Showing')
-        ax.set_zlabel('Value')
-        ax.set_title(title)
-        ax.view_init(ax.elev, -120)
-        fig.colorbar(surf)
-        plt.show()
+    plt.plot(range(len(m_stats_q_learning)), m_stats_q_learning, c=c)
+    plt.fill_between(range(len(std_stats_q_learning)), m_stats_q_learning - std_stats_q_learning, m_stats_q_learning + std_stats_q_learning, alpha=0.5, edgecolor=c, facecolor=c)
 
-    plot_surface(X, Y, Z_noace, "{} (No Usable Ace)".format(title))
-    plot_surface(X, Y, Z_ace, "{} (Usable Ace)".format(title))
+def plot_visitation_counts(episodes_ydata, smoothing_window = 1000, c=['b', 'g', 'r', 'y', 'k', 'c'], num_states = None):
 
+    if not num_states: 
+        num_states = len(episodes_ydata[0].visitation_count)
 
+    overall_stats_q_learning = [[] for i in range(num_states)]
+    for trialdata in episodes_ydata:
+        for state in range(num_states):
+            overall_stats_q_learning[state].append(pd.Series(trialdata.visitation_count[state]).rolling(smoothing_window, min_periods=smoothing_window).mean().data)
+    
+    for state in range(num_states):
+        m_stats_q_learning = np.mean(overall_stats_q_learning[state], axis=0)
+        std_stats_q_learning = np.std(overall_stats_q_learning[state], axis=0)
 
-def plot_episode_stats(stats, smoothing_window=10, noshow=False):
-    # Plot the episode length over time
-    fig1 = plt.figure(figsize=(10,5))
-    plt.plot(stats.episode_lengths)
-    plt.xlabel("Episode")
-    plt.ylabel("Episode Length")
-    plt.title("Episode Length over Time")
-    if noshow:
-        plt.close(fig1)
-    else:
-        plt.show(fig1)
+        plt.plot(range(len(m_stats_q_learning)), m_stats_q_learning, c=c[state])
+        plt.fill_between(range(len(std_stats_q_learning)), m_stats_q_learning - std_stats_q_learning, m_stats_q_learning + std_stats_q_learning, alpha=0.5, edgecolor=c[state], facecolor=c[state])
 
-    # Plot the episode reward over time
-    fig2 = plt.figure(figsize=(10,5))
-    rewards_smoothed = pd.Series(stats.episode_rewards).rolling(smoothing_window, min_periods=smoothing_window).mean()
-    plt.plot(rewards_smoothed)
-    plt.xlabel("Episode")
-    plt.ylabel("Episode Reward (Smoothed)")
-    plt.title("Episode Reward over Time (Smoothed over window size {})".format(smoothing_window))
-    if noshow:
-        plt.close(fig2)
-    else:
-        plt.show(fig2)
+def plot_target_counts(episodes_ydata, smoothing_window = 1000, c=['b', 'g', 'r', 'y', 'k', 'c']):
 
-    # Plot time steps and episode number
-    fig3 = plt.figure(figsize=(10,5))
-    plt.plot(np.cumsum(stats.episode_lengths), np.arange(len(stats.episode_lengths)))
-    plt.xlabel("Time Steps")
-    plt.ylabel("Episode")
-    plt.title("Episode per time step")
-    if noshow:
-        plt.close(fig3)
-    else:
-        plt.show(fig3)
+    num_states = len(episodes_ydata[0].target_count)
 
-    return fig1, fig2, fig3
+    overall_stats_q_learning = [[] for i in range(num_states)]
+    for trialdata in episodes_ydata:
+        for state in range(num_states):
+            overall_stats_q_learning[state].append(pd.Series(trialdata.target_count[state]).rolling(smoothing_window, min_periods=smoothing_window).mean().data)
+    
+    for state in range(num_states):
+        m_stats_q_learning = np.mean(overall_stats_q_learning[state], axis=0)
+        std_stats_q_learning = np.std(overall_stats_q_learning[state], axis=0)
+
+        plt.plot(range(len(m_stats_q_learning)), m_stats_q_learning, c=c[state])
+        plt.fill_between(range(len(std_stats_q_learning)), m_stats_q_learning - std_stats_q_learning, m_stats_q_learning + std_stats_q_learning, alpha=0.5, edgecolor=c[state], facecolor=c[state])
+
+def plot_q_values(model, observation_space, action_space):
+
+    res = 100
+
+    test_observations = np.linspace(observation_space.low, observation_space.high, res)
+    
+    print((action_space.n, res))
+    q_values = np.zeros((action_space.n, res))
+
+    for action in range(action_space.n):
+        for obs in range(res):
+            q_values[action, obs] = model.predict(test_observations[obs])[0, action]
+
+        plt.plot(test_observations, q_values[action])
+
