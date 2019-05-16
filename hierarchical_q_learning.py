@@ -9,7 +9,7 @@ import utils.plotting as plotting
 
 
 class hierarchicalQLearningAgent():
-    def __init__(self, env = hMDP(), meta_goals = [0, 1, 2, 3, 4, 5], num_episodes = 20000, \
+    def __init__(self, env = hMDP(), meta_goals = [0, 1, 2, 3, 4, 5], num_episodes = 25000, \
                     gamma = 0.9, alpha = 0.6, batch_size = 1, epsilon_anneal = 1/2000, \
                     meta_epsilon_anneal = 1/12000):
         self.env = env
@@ -74,7 +74,7 @@ class hierarchicalQLearningAgent():
             done = False
             goal = self.epsGreedy(s, self.meta_goals, epsilon_meta, Q2)
             #stats.target_count[goal, i] += 1
-            epsilon[goal] = max(epsilon[goal] - self.epsilon_anneal, 0.1)
+            epsilon[goal] = max(epsilon[goal] - self.epsilon_anneal, 0.1) if i < self.num_episodes*0.8 else 0
             t = 0
             while not done:
                 F = 0
@@ -98,9 +98,9 @@ class hierarchicalQLearningAgent():
                 if not done:
                     goal = self.epsGreedy(s, self.meta_goals, epsilon_meta, Q2)
                     stats.target_count[goal, i] += 1
-                    epsilon[goal] = max(epsilon[goal] - self.epsilon_anneal, 0.1)
+                    epsilon[goal] = max(epsilon[goal] - self.epsilon_anneal, 0.1) if i < self.num_episodes*0.8 else 0
 
-            epsilon_meta = max(epsilon_meta - self.meta_epsilon_anneal, 0.1)
+            epsilon_meta = max(epsilon_meta - self.meta_epsilon_anneal, 0.1) if i < self.num_episodes*0.8 else 0
 
 
         return stats

@@ -11,7 +11,7 @@ import utils.plotting as plotting
 
 class QLearningAgent():
 
-    def __init__(self, env = hMDP(), num_episodes = 20000, \
+    def __init__(self, env = hMDP(), num_episodes = 25000, \
                 gamma = 0.9, alpha = 0.6, batch_size = 1, epsilon_anneal = 1/12000):
         self.env = env
         self.num_episodes = num_episodes
@@ -71,7 +71,7 @@ class QLearningAgent():
                 Q = self.QValueUpdate(Q, D)
                 s = s_next
                 t += 1
-            epsilon = max(epsilon - self.epsilon_anneal, 0.1)
+            epsilon = max(epsilon - self.epsilon_anneal, 0.1) if i < self.num_episodes*0.8 else 0
 
         return stats
         #plotting.plot_episode_stats(stats, smoothing_window=1000)

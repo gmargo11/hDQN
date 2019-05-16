@@ -18,13 +18,13 @@ num_trials = 20
 
 stats_q_learning = []
 for i in range(num_trials):
-    q_agent = QLearningAgent(env=hMDP())
+    q_agent = QLearningAgent(env=hMDP(), num_episodes=25000)
     episode_stats = q_agent.learn()
     stats_q_learning.append(episode_stats)
 
 stats_hq_learning = []
 for i in range(num_trials):
-    hq_agent = hierarchicalQLearningAgent(env=hMDP())
+    hq_agent = hierarchicalQLearningAgent(env=hMDP(), num_episodes=25000)
     episode_stats = hq_agent.learn()
     stats_hq_learning.append(episode_stats)
 '''
@@ -40,6 +40,22 @@ for i in range(num_trials):
     episode_stats = hdqn_agent.learn()
     stats_hdqn.append(episode_stats)
 '''
+
+
+#########################################################
+
+exploit_returns = []
+for stat in stats_q_learning:
+    exploit_returns += [np.mean(stat.episode_rewards[20000:25000])]
+
+print('Q-learning average exploitative return:', np.mean(exploit_returns))
+
+exploit_returns = []
+for stat in stats_hq_learning:
+    exploit_returns += [np.mean(stat.episode_rewards[20000:25000])]
+
+print('Hierarchical Q-learning average exploitative return:', np.mean(exploit_returns))
+
 
 #########################################################
 
