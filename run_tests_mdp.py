@@ -1,5 +1,5 @@
-from q_learning import QLearningAgent
-from hierarchical_q_learning import hierarchicalQLearningAgent
+from agents.q_learning import QLearningAgent
+from agents.hierarchical_q_learning import hierarchicalQLearningAgent
 #from DQN import DQNAgent
 #from hDQN import hDQNAgent
 
